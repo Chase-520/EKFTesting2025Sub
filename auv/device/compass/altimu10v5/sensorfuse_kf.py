@@ -37,7 +37,7 @@ class SensorFuse:
         self.DVL = dvl
         self.imu = {"ax": 0, "ay": 0, "az": 0}
         # tracks the cumulative position
-        self.position = np.zeros(3)
+        self.position = np.array([0.0, 0.0, 0.0])
         self.last_time = 0
 
 

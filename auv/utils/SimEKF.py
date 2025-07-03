@@ -123,6 +123,7 @@ class SensorSimulator:
 
     def generate_square_path(self):
         """Generate data for square path"""
+        # TODO the path is not a sqaure, we don't really need angle
         movements = [
             (np.array([0.0, 1.0, 0.0]), 0.0),    # Forward
             (np.array([0.0, 0.0, 0.0]), np.pi/2), # Turn left

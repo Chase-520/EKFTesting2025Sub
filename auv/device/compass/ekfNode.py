@@ -60,7 +60,7 @@ class SensorFuse:
         self.ekf.F = self.FJacobian_at(self.ekf.x, dt)
 
         # Update the filter with the latest DVL measurements
-        self.ekf.update(self.dvl_vel, self.HJacobian_at, self.hx)
+        self.ekf.update(self.dvl_array, self.HJacobian_at, self.hx)
 
         # Predict the next state
         self.ekf.predict()
@@ -121,7 +121,6 @@ class SensorFuse:
 
     # ------------- Extended Kalman Filter ----------------
     def create_filter(self) -> ExtendedKalmanFilter:
-        # A Kalman filter with 6 states (dvl_vel_x, dvl_vel_y, dvl_vel_z, imu_accel_x, imu_accel_y, imu_accel_z)
         # and 3 measurements (vel_x, vel_y, vel_z)
         ekf = ExtendedKalmanFilter(dim_x=6, dim_z=3, dim_u=0)
 

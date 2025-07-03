@@ -132,6 +132,25 @@ class EKFTester:
         plt.tight_layout()
         plt.show()
 
+    def save(self):
+        import csv
+        if not self.ekf_results:
+            print("No EKF results to save.")
+            return
+
+        fieldnames = ['time', 'x', 'y', 'z', 'vx', 'vy', 'vz']
+
+        try:
+            with open("ekf_result", mode='w', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(self.ekf_results)
+
+            print(f"Saved EKF results to ekf_result")
+
+        except Exception as e:
+            print(f"Error saving EKF results: {e}")
+            
     def plot_comparison(self, output_dir):
         """Plot comparison of raw and EKF-processed data and save to file"""
         visualizer = DataVisualizer()

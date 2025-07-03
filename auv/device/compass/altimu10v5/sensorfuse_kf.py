@@ -182,6 +182,7 @@ class SensorFuse:
         # Update the state with IMU data
         self.ekf.x[3:] = np.array([self.imu["ax"], self.imu["ay"], self.imu["az"]])
 
+        
         self.position += dt * np.array(self.ekf.x[0:3])
 
         return

@@ -150,7 +150,7 @@ class EKFTester:
 
         except Exception as e:
             print(f"Error saving EKF results: {e}")
-            
+
     def plot_comparison(self, output_dir):
         """Plot comparison of raw and EKF-processed data and save to file"""
         visualizer = DataVisualizer()
@@ -177,7 +177,12 @@ if __name__ == "__main__":
     tester = EKFTester()
     tester.simulate_live_processing()
     
+    # save the result
+    tester.save()
+
     # directly show the result of ekf
     tester.plot()
+
+    
     # Plot comparison of raw and EKF-processed data and save to file
     # tester.plot_comparison(output_dir=output_dir)

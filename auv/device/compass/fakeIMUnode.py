@@ -16,7 +16,7 @@ class fakeIMU:
             dvl_rate=10    # 10 Hz
         )
         self.imu_data, _ = self.simulator.generate_square_path()
-        self.imu_df = pd.DataFrame(self.imu_data).sort_values('time')
+        self.imu_df = pd.DataFrame(self.imu_data).sort_values('Time')
 
     def FakePublish(self):
         while not rospy.is_shutdown():

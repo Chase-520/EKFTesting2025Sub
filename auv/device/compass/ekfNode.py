@@ -37,10 +37,6 @@ class SensorFuse:
         self.position = np.array([0.0, 0.0, 0.0])
         self.last_time = time.time()
 
-
-        if not self.use_simulated_data:
-            self.start_imu_listener()
-
     def imu_callback(self,msg):
         self.imu_data["ax"] = msg.linear_acceleration.x
         self.imu_data["ay"] = msg.linear_acceleration.y

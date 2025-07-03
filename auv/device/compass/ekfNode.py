@@ -78,7 +78,7 @@ class SensorFuse:
         point_msg.header.frame_id = "base_link"  # or "odom", "base_link", etc.
 
         point_msg.point.x = self.position[0]
-        point_msg.point.y = self.posiiton[1]
+        point_msg.point.y = self.position[1]
         point_msg.point.z = self.position[2]
 
         self.pub.publish(point_msg)

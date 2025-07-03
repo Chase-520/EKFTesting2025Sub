@@ -7,7 +7,7 @@ import time
 import threading
 import rospy
 from sensor_msgs.msg import Imu
-from geometry_msgs import TwistStamped
+from geometry_msgs.msg import TwistStamped
 from geometry_msgs.msg import PointStamped
 
 

@@ -5,7 +5,8 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 from auv.utils.SimEKF import SensorSimulator, DataVisualizer
-from sensorfuse_kf import SensorFuse
+from auv.device.compass.altimu10v5.sensorfuse_kf import SensorFuse
+import cv2
 import time
 
 class EKFTester:
@@ -114,7 +115,7 @@ class EKFTester:
 if __name__ == "__main__":
     # Create a directory for this run
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    output_dir = os.path.join('/Users/poosh/Desktop/ECE191/test_robosub_2024/auv/device/compass/altimu10v5/EKFComp', timestamp)
+    output_dir = os.path.join('EKFComp', timestamp)
     os.makedirs(output_dir, exist_ok=True)
     
     tester = EKFTester()

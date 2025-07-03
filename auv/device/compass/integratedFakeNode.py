@@ -52,7 +52,7 @@ class fakeIntegrated:
 
                     imu_msg.orientation_covariance[0] = -1
 
-                    self.pub.publish(imu_msg)
+                    self.imu_pub.publish(imu_msg)
                     self.rate.sleep()
         except rospy.ROSInterruptException:
             rospy.loginfo("ROS node shutdown requested.")
@@ -80,7 +80,7 @@ class fakeIntegrated:
                     msg.twist.angular.y = 0.0
                     msg.twist.angular.z = 0.0
 
-                    self.pub.publish(msg)
+                    self.dvl_pub.publish(msg)
                     self.rate.sleep()
         except rospy.ROSInterruptException:
             rospy.loginfo("ROS shutdown requested.")

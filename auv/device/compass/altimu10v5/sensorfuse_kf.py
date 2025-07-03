@@ -36,7 +36,10 @@ class SensorFuse:
         self.ekf = self.create_filter()
         self.DVL = dvl
         self.imu = {"ax": 0, "ay": 0, "az": 0}
+        # tracks the cumulative position
+        self.position = np.zeros(3)
         self.last_time = 0
+
 
         if not self.use_simulated_data:
             self.start_imu_listener()
@@ -119,8 +122,6 @@ class SensorFuse:
             [0., 0., 0.1]   # vel_z
         ])
 
-        # tracks the cumulative position
-        self.position = np.zeros(3)
 
         return ekf
 
@@ -181,7 +182,7 @@ class SensorFuse:
         # Update the state with IMU data
         self.ekf.x[3:] = np.array([self.imu["ax"], self.imu["ay"], self.imu["az"]])
 
-        self.position += dt * self.ekf.x[:3]
+        self.position += dt * np.array(self.ekf.x[0:3])
 
         return
 

@@ -96,8 +96,9 @@ class EKFTester:
         print("Simulated live processing completed.")
 
     def plot(self):
+        import matplotlib
         import matplotlib.pyplot as plt
-        
+        matplotlib.use('TkAgg')
         ekf_results = self.ekf_results
         times = [entry['time'] for entry in ekf_results]
         

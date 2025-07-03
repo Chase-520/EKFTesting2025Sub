@@ -95,6 +95,42 @@ class EKFTester:
         self.ekf_df = pd.DataFrame(self.ekf_results)
         print("Simulated live processing completed.")
 
+    def plot(self):
+        import matplotlib.pyplot as plt
+        
+        ekf_results = self.ekf_results
+        times = [entry['time'] for entry in ekf_results]
+        
+        x = [entry['x'] for entry in ekf_results]
+        y = [entry['y'] for entry in ekf_results]
+        z = [entry['z'] for entry in ekf_results]
+        
+        vx = [entry['vx'] for entry in ekf_results]
+        vy = [entry['vy'] for entry in ekf_results]
+        vz = [entry['vz'] for entry in ekf_results]
+        
+        fig, axs = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+        
+        # Position
+        axs[0].plot(times, x, label='x')
+        axs[0].plot(times, y, label='y')
+        axs[0].plot(times, z, label='z')
+        axs[0].set_ylabel('Position')
+        axs[0].legend()
+        axs[0].grid(True)
+
+        # Velocity
+        axs[1].plot(times, vx, label='vx')
+        axs[1].plot(times, vy, label='vy')
+        axs[1].plot(times, vz, label='vz')
+        axs[1].set_ylabel('Velocity')
+        axs[1].set_xlabel('Time')
+        axs[1].legend()
+        axs[1].grid(True)
+
+        plt.tight_layout()
+        plt.show()
+
     def plot_comparison(self, output_dir):
         """Plot comparison of raw and EKF-processed data and save to file"""
         visualizer = DataVisualizer()
@@ -121,5 +157,7 @@ if __name__ == "__main__":
     tester = EKFTester()
     tester.simulate_live_processing()
     
+    # directly show the result of ekf
+    tester.plot()
     # Plot comparison of raw and EKF-processed data and save to file
-    tester.plot_comparison(output_dir=output_dir)
+    # tester.plot_comparison(output_dir=output_dir)

@@ -14,14 +14,14 @@ class fakeIntegrated:
         self.imu_pub = rospy.Publisher('/auv/device/imu', Imu, queue_size=10)
         self.dvl_pub = rospy.Publisher('/auv/device/dvl', TwistStamped, queue_size=10)
 
-        self.imu_rate = rospy.Rate(40)  # 40 Hz
+        self.imu_rate = rospy.Rate(10)  # 40 Hz
         self.dvl_rate = rospy.Rate(10)  # 10 Hz
 
         self.running = True  # for thread control
 
         self.simulator = SensorSimulator(
             side_length=5.0,
-            imu_rate=40,
+            imu_rate=10,
             dvl_rate=10
         )
 

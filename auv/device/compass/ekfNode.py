@@ -42,15 +42,18 @@ class SensorFuse:
         self.imu_data["ay"] = msg.linear_acceleration.y
         self.imu_data["az"] = msg.linear_acceleration.z
         self.imu_array = np.array([self.imu_data["ax"], self.imu_data["ay"], self.imu_data["az"]])
-        
+        # update state
+        self.update_state()
+
     def dvl_callback(self,msg):
         self.dvl_data["vx"] = msg.twist.linear.x
         self.dvl_data["vy"] = msg.twist.linear.y
         self.dvl_data["vz"] = msg.twist.linear.z
         self.dvl_array = np.array([self.dvl_data["vx"], self.dvl_data["vy"], self.dvl_data["vz"]])
-    
+        # update filter
         self.update_filter()
-    def update_filter(self):
+
+    def update_state(self):
         # Calculate time delta
         current_time = time.time()
         dt = current_time - self.last_time
@@ -59,17 +62,19 @@ class SensorFuse:
         # Update the state transition matrix F with the new dt
         self.ekf.F = self.FJacobian_at(self.ekf.x, dt)
 
-        # Update the filter with the latest DVL measurements
-        self.ekf.update(self.dvl_array, self.HJacobian_at, self.hx)
-
-        # Predict the next state
-        self.ekf.predict()
         # Update the state with IMU data
         self.ekf.x[3:] = self.imu_array
 
-        self.position += dt * np.array(self.ekf.x[0:3])
+        # Predict the next state
+        self.ekf.predict()
 
+        # Integrate position and publish it
+        self.position += dt * np.array(self.ekf.x[0:3])
         self.publish()
+
+    def update_filter(self):
+        # Update the filter with the latest DVL measurements
+        self.ekf.update(self.dvl_array, self.HJacobian_at, self.hx)
     
 
     def publish(self):

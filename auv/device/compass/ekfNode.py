@@ -74,7 +74,7 @@ class SensorFuse:
         try:
             # Store body-frame velocities
             self.dvl_data["vx"] = msg.vector.x
-            self.dvl_data["vx"] = msg.vector.y
+            self.dvl_data["vy"] = msg.vector.y
             self.dvl_data["vz"] = msg.vector.z
             
             # Get rotation matrix from IMU quaternion

@@ -59,9 +59,8 @@ class SensorFuse:
                             msg.linear_acceleration.y,
                             msg.linear_acceleration.z])
         
-        # Get rotation matrix from IMU quaternion
-        euler = [self.imu_ori_data['yaw'], self.imu_ori_data['pitch'], self.imu_ori_data['roll']]  # yaw pitch roll
-        rot_matrix = euler2mat(euler, axes='szyx')  # Body-to-world rotation
+        # Get rotation matrix from IMU YPR
+        rot_matrix = euler2mat(ai=self.imu_ori_data['yaw'], aj=self.imu_ori_data['pitch'], ak=self.imu_ori_data['roll'], axes='szyx')  # Body-to-world rotation
         
         # Rotate acceleration to world frame
         accel_world = rot_matrix @ accel_body
@@ -79,8 +78,8 @@ class SensorFuse:
             self.dvl_data["vz"] = msg.vector.z
             
             # Get rotation matrix from IMU quaternion
-            euler = [self.imu_ori_data['yaw'], self.imu_ori_data['pitch'], self.imu_ori_data['roll']]  # yaw pitch roll
-            rot_matrix = euler2mat(euler, axes='szyx')  # Body-to-world rotation
+            rot_matrix = euler2mat(ai=self.imu_ori_data['yaw'], aj=self.imu_ori_data['pitch'], ak=self.imu_ori_data['roll'], axes='szyx')  # Body-to-world rotation
+
             
             # Convert DVL velocities to numpy array and rotate
             v_body = np.array([self.dvl_data["vx"],
@@ -95,7 +94,7 @@ class SensorFuse:
             self.update_dvl()
         except Exception as e:
             rospy.logerr(f"DVL callback error: {str(e)}")
-
+            
     def update_state(self):
         # Accept both (9,) and (9,1) shapes
         assert self.ekf.x.shape in [(9,), (9,1)], \
@@ -123,6 +122,29 @@ class SensorFuse:
             self.position = self.ekf.x[0:3]
             self.publish()
     
+    def update_depth(self):
+        with self.ekf_lock:
+            # Ensure we have valid depth data
+            if self.barometer_depth is None or not self.calibrated:
+                return
+                
+            # Measurement function returns column vector
+            def h_z(x):
+                return np.array([[x[2, 0]]])  # Returns 2D matrix (1x1)
+                
+            # Jacobian matrix (1x9)
+            def H_z(x):
+                return np.array([[0, 0, 1, 0, 0, 0, 0, 0, 0]])
+                
+            # Measurement as 2D matrix (1x1)
+            z = np.array([[self.barometer_depth]])
+            
+            # Measurement noise as 2D matrix (1x1)
+            R_z = np.array([[0.05]])
+
+            # Perform EKF update
+            self.ekf.update(z, HJacobian=H_z, Hx=h_z, R=R_z)
+
 
     def publish(self):
         pose_msg = PoseStamped()
@@ -133,10 +155,10 @@ class SensorFuse:
         pose_msg.pose.position.y = self.position[1]
         pose_msg.pose.position.z = self.position[2]
         
-        pose_msg.pose.orientation.w = self.imu_ori_data['qw']
-        pose_msg.pose.orientation.x = self.imu_ori_data['qx']
-        pose_msg.pose.orientation.y = self.imu_ori_data['qy']
-        pose_msg.pose.orientation.z = self.imu_ori_data['qz']
+        pose_msg.pose.orientation.w = 0.0
+        pose_msg.pose.orientation.x = self.imu_ori_data['roll']
+        pose_msg.pose.orientation.y = self.imu_ori_data['pitch']
+        pose_msg.pose.orientation.z = self.imu_ori_data['yaw']
 
         self.pub.publish(pose_msg)
         self.rate.sleep()
@@ -233,5 +255,6 @@ class SensorFuse:
 if __name__=="__main__":
     ekf = SensorFuse()
     time.sleep(2)
+    ekf.calibrate_depth()
     rospy.loginfo("ekf node running")
     rospy.spin()

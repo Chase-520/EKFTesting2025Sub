@@ -8,7 +8,6 @@ import threading
 from statistics import mean
 import rospy
 from struct import pack, unpack
-from mavros_msgs.msg import Mavlink
 from std_msgs.msg import Float32MultiArray
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import PoseStamped, Vector3Stamped
@@ -37,10 +36,6 @@ class SensorFuse:
         self.dvl_data   = {"vx": 0, "vy": 0, "vz": 0}
         self.dvl_array  = np.zeros((3, 1)) # used for passing into the ekf
 
-        self.baro_sub           = rospy.Subscriber("/mavlink/from", Mavlink, self.barometer_callback)
-        self.barometer_depth    = None
-        self.depth_calib        = 0
-        self.calibrated         = False
         # initialize filter, dvl, imu, dt, and last_time
         # initialize dt before creating the filter
         self.dt = 1.0 / 100  # IMU time step (100 Hz)
@@ -101,63 +96,6 @@ class SensorFuse:
         except Exception as e:
             rospy.logerr(f"DVL callback error: {str(e)}")
 
-    def barometer_callback(self, msg):
-        """
-        Handles barometric data by unpacking, calculating depth from raw data, then publishes raw data
-
-        Args:
-            msg: Barometric data from corresponding publisher
-        """
-        try:
-            # If the barometric data message has the right ID
-            if msg.msgid == 143:
-                # Unpack the data
-                p = pack("QQ", *msg.payload64)
-                time_boot_ms, press_abs, press_diff, temperature = unpack("Iffhxx", p) # Pressure is in mBar
-
-                # Calculate the depth based on the pressure
-                press_diff = round(press_diff, 2)
-                press_abs = round(press_abs, 2)
-                self.barometer_depth = (press_abs / (997.0474 * 9.80665 * 0.01)) - self.depth_calib
-            
-            if self.calibrated:
-                self.update_depth()
-        # Handle exceptions
-        except Exception as e:
-            rospy.logerr("Barometer unpacking failed")
-            rospy.logerr(e)
-
-    def calibrate_depth(self, sample_time=3):
-        """
-        To calibrate the depth data
-
-        Args:
-            sample_time (int): The number of seconds taken to calibrate the data        
-        """
-        rospy.loginfo("Starting Depth Calibration...")
-        samples = []
-
-        # Wait for depth data
-        while self.barometer_depth == None:
-            rospy.sleep(0.1)
-            pass
-
-
-        prevDepth = self.barometer_depth
-        start_time = time.time()
-
-        # Collect data for sample_time seconds, then calculate the mean
-        while time.time() - start_time < sample_time:
-            if self.barometer_depth == prevDepth:
-                continue
-
-            samples.append(self.barometer_depth)
-            prevDepth = self.barometer_depth
-
-        self.depth_calib = mean(samples)
-        self.calibrated = True
-        rospy.loginfo(f"depth calibration Finished. Surface is: {self.depth_calib}")
-
     def update_state(self):
         # Accept both (9,) and (9,1) shapes
         assert self.ekf.x.shape in [(9,), (9,1)], \
@@ -185,29 +123,6 @@ class SensorFuse:
             self.position = self.ekf.x[0:3]
             self.publish()
     
-    def update_depth(self):
-        with self.ekf_lock:
-            # Ensure we have valid depth data
-            if self.barometer_depth is None or not self.calibrated:
-                return
-                
-            # Measurement function returns column vector
-            def h_z(x):
-                return np.array([[x[2, 0]]])  # Returns 2D matrix (1x1)
-                
-            # Jacobian matrix (1x9)
-            def H_z(x):
-                return np.array([[0, 0, 1, 0, 0, 0, 0, 0, 0]])
-                
-            # Measurement as 2D matrix (1x1)
-            z = np.array([[self.barometer_depth]])
-            
-            # Measurement noise as 2D matrix (1x1)
-            R_z = np.array([[0.05]])
-
-            # Perform EKF update
-            self.ekf.update(z, HJacobian=H_z, Hx=h_z, R=R_z)
-
 
     def publish(self):
         pose_msg = PoseStamped()

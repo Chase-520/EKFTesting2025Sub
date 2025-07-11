@@ -233,6 +233,5 @@ class SensorFuse:
 if __name__=="__main__":
     ekf = SensorFuse()
     time.sleep(2)
-    ekf.calibrate_depth()
     rospy.loginfo("ekf node running")
     rospy.spin()

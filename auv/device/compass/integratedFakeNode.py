@@ -2,7 +2,7 @@ import rospy
 import pandas as pd
 import time
 import threading
-from geometry_msgs.msg import TwistStamped
+from geometry_msgs.msg import PoseStamped, Vector3Stamped
 from sensor_msgs.msg import Imu
 from auv.utils.SimEKF import SensorSimulator
 
@@ -12,7 +12,7 @@ class fakeIntegrated:
         rospy.init_node('fakeIntegrated', anonymous=True)
 
         self.imu_pub = rospy.Publisher('/auv/devices/vectornav', Imu, queue_size=10)
-        self.dvl_pub = rospy.Publisher('/auv/devices/dvl/velocity', TwistStamped, queue_size=10)
+        self.dvl_pub = rospy.Publisher('/auv/devices/dvl/velocity', Vector3Stamped, queue_size=10)
 
         self.imu_rate = rospy.Rate(10)  # 40 Hz
         self.dvl_rate = rospy.Rate(10)  # 10 Hz
@@ -62,17 +62,13 @@ class fakeIntegrated:
                 if not self.running or rospy.is_shutdown():
                     break
 
-                msg = TwistStamped()
+                msg = Vector3Stamped()
                 msg.header.stamp = rospy.Time.now()
                 msg.header.frame_id = "base_link"
 
-                msg.twist.linear.x = data['vx']
-                msg.twist.linear.y = data['vy']
-                msg.twist.linear.z = data['vz']
-
-                msg.twist.angular.x = 0.0
-                msg.twist.angular.y = 0.0
-                msg.twist.angular.z = 0.0
+                msg.vector.x = data['vx']
+                msg.vector.y = data['vy']
+                msg.vector.z = data['vz']
 
                 self.dvl_pub.publish(msg)
                 self.dvl_rate.sleep()

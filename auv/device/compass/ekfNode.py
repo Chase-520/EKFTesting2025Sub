@@ -8,6 +8,7 @@ import threading
 from statistics import mean
 import rospy
 from struct import pack, unpack
+from mavros_msgs.msg import Mavlink
 from std_msgs.msg import Float32MultiArray
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import PoseStamped, Vector3Stamped
@@ -22,7 +23,8 @@ class SensorFuse:
         # Initialize node
         rospy.init_node('ekfNode', anonymous=True)
         self.pub = rospy.Publisher('/auv/state/pose', PoseStamped, queue_size=10)
-        self.rate = rospy.Rate(10)  # 10 Hz
+        self.rate = rospy.Rate(40)  # 10 Hz
+        self.dt = 1.0 / 50.0  # Default prediction rate (50 Hz)
         self.ekf_lock = threading.Lock()
         
 
@@ -37,13 +39,19 @@ class SensorFuse:
         self.dvl_data   = {"vx": 0, "vy": 0, "vz": 0}
         self.dvl_array  = np.zeros((3, 1)) # used for passing into the ekf
 
-        # initialize filter, dvl, imu, dt, and last_time
-        # initialize dt before creating the filter
-        self.dt = 1.0 / 100  # IMU time step (100 Hz)
+        self.baro_sub           = rospy.Subscriber("/mavlink/from", Mavlink, self.barometer_callback)
+        self.barometer_depth    = None
+        self.depth_calib        = 0
+        self.calibrated         = False
+
         self.ekf = self.create_filter()
         # tracks the cumulative position
         self.position = np.zeros((3, 1))
-        self.last_time = time.time()
+
+        self.calibrate_depth()
+
+        self.predictThread = threading.Thread(target=self.predict_thread)
+        self.predictThread.start()
 
     def imu_callback(self,msg):
         # (self.imu_data["ax"], self.imu_data["ay"], self.imu_data["az"]) = quat2euler(orientation_list)
@@ -55,22 +63,6 @@ class SensorFuse:
         self.imu_ori_data['pitch'] = msg.orientation.y
         self.imu_ori_data['yaw'] = msg.orientation.z
 
-        # Store body-frame acceleration
-        accel_body = np.array([msg.linear_acceleration.x,
-                            msg.linear_acceleration.y,
-                            msg.linear_acceleration.z])
-        
-        # Get rotation matrix from IMU YPR
-        rot_matrix = euler2mat(ai=self.imu_ori_data['yaw'], aj=self.imu_ori_data['pitch'], ak=self.imu_ori_data['roll'], axes='szyx')  # Body-to-world rotation
-        
-        # Rotate acceleration to world frame
-        accel_world = rot_matrix @ accel_body
-
-        self.imu_array = accel_world.reshape(-1, 1)  # Store as column vector
-
-        # update state
-        self.update_state()
-
     def dvl_callback(self, msg):
         try:
             # Store body-frame velocities
@@ -79,7 +71,8 @@ class SensorFuse:
             self.dvl_data["vz"] = msg.twist.linear.z
             
             # Get rotation matrix from IMU quaternion
-            rot_matrix = euler2mat(ai=self.imu_ori_data['yaw'], aj=self.imu_ori_data['pitch'], ak=self.imu_ori_data['roll'], axes='szyx')  # Body-to-world rotation
+            with self.ekf_lock:
+                rot_matrix = euler2mat(ai=self.imu_ori_data['yaw'], aj=self.imu_ori_data['pitch'], ak=self.imu_ori_data['roll'], axes='szyx')  # Body-to-world rotation
 
             
             # Convert DVL velocities to numpy array and rotate
@@ -96,32 +89,18 @@ class SensorFuse:
         except Exception as e:
             rospy.logerr(f"DVL callback error: {str(e)}")
 
-    def update_state(self):
-        # Accept both (9,) and (9,1) shapes
-        assert self.ekf.x.shape in [(9,), (9,1)], \
-            f"ekf.x corrupted: shape {self.ekf.x.shape}"
-            
-        # Calculate time delta
-        current_time = time.time()
-        dt = current_time - self.last_time
-        self.last_time = current_time
-
-        # Update the state transition matrix F with the new dt
-        self.ekf.F = self.FJacobian_at(self.ekf.x, dt)
-
-        # Update the state with IMU data
-        # Ensure imu_array is column vector before assignment
-        self.ekf.x[6:] = self.imu_array.reshape(-1, 1)
-
-        # Predict the next state
-        self.ekf.predict()
+    def predict_thread(self):
+        while not rospy.is_shutdown():
+            with self.ekf_lock:
+                self.ekf.predict()
+            self.publish()
+            self.rate.sleep()
 
     def update_dvl(self):
         with self.ekf_lock:
             z = self.dvl_array.reshape(-1, 1)  # Keep as 1D vector (3,)
             self.ekf.update(z, self.H_velocity, self.hx_velocity)
             self.position = self.ekf.x[0:3]
-            self.publish()
     
     def update_depth(self):
         with self.ekf_lock:

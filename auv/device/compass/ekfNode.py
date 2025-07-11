@@ -74,9 +74,9 @@ class SensorFuse:
     def dvl_callback(self, msg):
         try:
             # Store body-frame velocities
-            self.dvl_data["vx"] = msg.linear.x
-            self.dvl_data["vy"] = msg.linear.y
-            self.dvl_data["vz"] = msg.linear.z
+            self.dvl_data["vx"] = msg.twist.linear.x
+            self.dvl_data["vy"] = msg.twist.linear.y
+            self.dvl_data["vz"] = msg.twist.linear.z
             
             # Get rotation matrix from IMU quaternion
             rot_matrix = euler2mat(ai=self.imu_ori_data['yaw'], aj=self.imu_ori_data['pitch'], ak=self.imu_ori_data['roll'], axes='szyx')  # Body-to-world rotation

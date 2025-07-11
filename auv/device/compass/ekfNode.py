@@ -165,7 +165,7 @@ class SensorFuse:
 
         # Init everything to 0
         # These are the sensor measurements
-        ekf.x = np.zeros((9, 1))
+        ekf.x = np.zeros((6, 1))
 
         # Create non-linear state transition matrix
         # Each row corresponds to a measurement from sensors

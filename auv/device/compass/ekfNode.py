@@ -94,7 +94,7 @@ class SensorFuse:
             self.update_dvl()
         except Exception as e:
             rospy.logerr(f"DVL callback error: {str(e)}")
-            
+
     def update_state(self):
         # Accept both (9,) and (9,1) shapes
         assert self.ekf.x.shape in [(9,), (9,1)], \
@@ -255,6 +255,5 @@ class SensorFuse:
 if __name__=="__main__":
     ekf = SensorFuse()
     time.sleep(2)
-    ekf.calibrate_depth()
     rospy.loginfo("ekf node running")
     rospy.spin()

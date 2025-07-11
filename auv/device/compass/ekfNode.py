@@ -2,7 +2,6 @@ import numpy as np
 from filterpy.kalman import ExtendedKalmanFilter
 from filterpy.common import Q_discrete_white_noise
 from auv.utils import deviceHelper
-from auv.device.dvl import DVL
 import time
 import threading
 import rospy

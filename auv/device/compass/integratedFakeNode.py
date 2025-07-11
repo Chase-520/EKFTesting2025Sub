@@ -13,7 +13,7 @@ class fakeIntegrated:
         rospy.init_node('fakeIntegrated', anonymous=True)
 
         self.imu_pub = rospy.Publisher('/auv/devices/vectornav', Imu, queue_size=10)
-        self.dvl_pub = rospy.Publisher('/auv/devices/dvl/velocity', Vector3Stamped, queue_size=10)
+        self.dvl_pub = rospy.Publisher('/auv/devices/dvl/velocity', TwistStamped, queue_size=10)
 
         self.imu_rate = rospy.Rate(10)  # 40 Hz
         self.dvl_rate = rospy.Rate(10)  # 10 Hz

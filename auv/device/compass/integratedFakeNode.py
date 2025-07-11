@@ -3,6 +3,7 @@ import pandas as pd
 import time
 import threading
 from geometry_msgs.msg import PoseStamped, Vector3Stamped
+from geometry_msgs.msg import TwistStamped
 from sensor_msgs.msg import Imu
 from auv.utils.SimEKF import SensorSimulator
 
@@ -61,16 +62,19 @@ class fakeIntegrated:
             for _, data in self.dvl_df.iterrows():
                 if not self.running or rospy.is_shutdown():
                     break
-
-                msg = Vector3Stamped()
+                msg = TwistStamped()
                 msg.header.stamp = rospy.Time.now()
-                msg.header.frame_id = "base_link"
+                msg.header.frame_id = "base_link"  # or "dvl_link", "odom", etc.
 
-                msg.vector.x = data['vx']
-                msg.vector.y = data['vy']
-                msg.vector.z = data['vz']
+                msg.twist.linear.x = data['vx']
+                msg.twist.linear.y = data['vy']
+                msg.twist.linear.z = data['vz']
 
-                self.dvl_pub.publish(msg)
+                msg.twist.angular.x = 0.0
+                msg.twist.angular.y = 0.0
+                msg.twist.angular.z = 0.0
+
+                self.pub.publish(msg)
                 self.dvl_rate.sleep()
 
     def FakePublish(self):

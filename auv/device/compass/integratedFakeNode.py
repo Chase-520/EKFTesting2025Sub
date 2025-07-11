@@ -74,7 +74,7 @@ class fakeIntegrated:
                 msg.twist.angular.y = 0.0
                 msg.twist.angular.z = 0.0
 
-                self.pub.publish(msg)
+                self.dvl_pub.publish(msg)
                 self.dvl_rate.sleep()
 
     def FakePublish(self):

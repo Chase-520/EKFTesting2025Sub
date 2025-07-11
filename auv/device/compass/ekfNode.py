@@ -7,8 +7,8 @@ import time
 import threading
 import rospy
 from sensor_msgs.msg import Imu
-from geometry_msgs.msg import TwistStamped
-from geometry_msgs.msg import PointStamped
+from geometry_msgs.msg import PoseStamped, Vector3Stamped
+from transforms3d.euler import quat2euler
 
 
 class SensorFuse:
@@ -16,16 +16,17 @@ class SensorFuse:
         # This is the ekf node that takes DVL and imu data and give estimation of velocity
         # Initialize node
         rospy.init_node('ekfNode', anonymous=True)
-        self.pub = rospy.Publisher('/auv/state/position', PointStamped, queue_size=10)
+        self.pub = rospy.Publisher('/auv/state/position', PoseStamped, queue_size=10)
         self.rate = rospy.Rate(10)  # 10 Hz
         
 
         # Create subscriber for imu and dvl
-        self.imu_sub = rospy.Subscriber("auv/device/imu", Imu, self.imu_callback)
-        self.imu_data = {"ax": 0, "ay": 0, "az": 0}  # store one line of IMU data for ekf predict
+        # TODO: Fix IMU rostopic architecture
+        self.imu_sub = rospy.Subscriber("/auv/device/vectornav", Imu, self.imu_callback)
+        self.imu_angles = {"ax": 0, "ay": 0, "az": 0}  # store one line of IMU data for ekf predict
         self.imu_array = None # used for passing into the ekf
 
-        self.dvl_sub = rospy.Subscriber("auv/device/dvl", TwistStamped, self.dvl_callback)
+        self.dvl_sub = rospy.Subscriber("/auv/device/dvl/velocity", Vector3Stamped, self.dvl_callback)
         self.dvl_data = {"vx": 0, "vy": 0, "vz": 0}
         self.dvl_array = None # used for passing into the ekf
         # initialize filter, dvl, imu, dt, and last_time
@@ -38,17 +39,17 @@ class SensorFuse:
         self.last_time = time.time()
 
     def imu_callback(self,msg):
-        self.imu_data["ax"] = msg.linear_acceleration.x
-        self.imu_data["ay"] = msg.linear_acceleration.y
-        self.imu_data["az"] = msg.linear_acceleration.z
-        self.imu_array = np.array([self.imu_data["ax"], self.imu_data["ay"], self.imu_data["az"]])
+        self.imu_data = msg
+        orientation_list = [self.imu.orientation.x, self.imu.orientation.y, self.imu.orientation.z, self.imu.orientation.w]
+        (self.imu_angles["ax"], self.imu_angles["ay"], self.imu_angles["az"]) = quat2euler(orientation_list)
+        self.imu_array = np.array([self.imu_angles["ax"], self.imu_angles["ay"], self.imu_angles["az"]])
         # update state
         self.update_state()
 
     def dvl_callback(self,msg):
-        self.dvl_data["vx"] = msg.twist.linear.x
-        self.dvl_data["vy"] = msg.twist.linear.y
-        self.dvl_data["vz"] = msg.twist.linear.z
+        self.dvl_data["vx"] = msg.vector.x
+        self.dvl_data["vy"] = msg.vector.y
+        self.dvl_data["vz"] = msg.vector.z
         self.dvl_array = np.array([self.dvl_data["vx"], self.dvl_data["vy"], self.dvl_data["vz"]])
         # update filter
         self.update_filter()
@@ -75,18 +76,24 @@ class SensorFuse:
     def update_filter(self):
         # Update the filter with the latest DVL measurements
         self.ekf.update(self.dvl_array, self.HJacobian_at, self.hx)
+        self.publish()
     
 
     def publish(self):
-        point_msg = PointStamped()
-        point_msg.header.stamp = rospy.Time.now()
-        point_msg.header.frame_id = "base_link"  # or "odom", "base_link", etc.
+        pose_msg = PoseStamped()
+        pose_msg.header.stamp = rospy.Time.now()
+        pose_msg.header.frame_id = "base_link"  # or "odom", "base_link", etc.
 
-        point_msg.point.x = self.position[0]
-        point_msg.point.y = self.position[1]
-        point_msg.point.z = self.position[2]
+        pose_msg.pose.position.x = self.position[0]
+        pose_msg.pose.position.y = self.position[1]
+        pose_msg.pose.position.z = self.position[2]
+        
+        pose_msg.pose.orientation.w = self.imu_data.orientation.w
+        pose_msg.pose.orientation.x = self.imu_data.orientation.x
+        pose_msg.pose.orientation.y = self.imu_data.orientation.y
+        pose_msg.pose.orientation.z = self.imu_data.orientation.z
 
-        self.pub.publish(point_msg)
+        self.pub.publish(pose_msg)
     
     @staticmethod
     def f(x, dt):

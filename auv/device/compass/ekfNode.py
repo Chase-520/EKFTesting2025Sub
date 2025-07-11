@@ -146,6 +146,36 @@ class SensorFuse:
             # Perform EKF update
             self.ekf.update(z, HJacobian=H_z, Hx=h_z, R=R_z)
 
+    def calibrate_depth(self, sample_time=3):
+        """
+        To calibrate the depth data
+
+        Args:
+            sample_time (int): The number of seconds taken to calibrate the data        
+        """
+        rospy.loginfo("Starting Depth Calibration...")
+        samples = []
+
+        # Wait for depth data
+        while self.barometer_depth == None:
+            rospy.sleep(0.1)
+            pass
+
+
+        prevDepth = self.barometer_depth
+        start_time = time.time()
+
+        # Collect data for sample_time seconds, then calculate the mean
+        while time.time() - start_time < sample_time:
+            if self.barometer_depth == prevDepth:
+                continue
+
+            samples.append(self.barometer_depth)
+            prevDepth = self.barometer_depth
+
+        self.depth_calib = mean(samples)
+        self.calibrated = True
+        rospy.loginfo(f"depth calibration Finished. Surface is: {self.depth_calib}")
 
     def publish(self):
         pose_msg = PoseStamped()
@@ -242,14 +272,36 @@ class SensorFuse:
         ekf.hx = self.hx_velocity  # assume initial measurement function is for velocity (DVL)
         ekf.H = self.H_velocity
 
-        # State covariance (uncertainty in initial state)
-        ekf.P = np.eye(9) * 1000.0  # large uncertainty
+        # === EKF Configuration for state: [x, y, z, vx, vy, vz, ax, ay, az] ===
 
-        # Process noise covariance (how much we trust our model)
-        ekf.Q = np.eye(9) * 0.1  # tunable
+        # --- Initial State Covariance (P): how uncertain we are about the initial state
+        initial_pos_var   = 100.0  # moderate uncertainty in position
+        initial_vel_var   = 10.0   # Lower uncertainty in velocity
+        initial_accel_var = 10.0    # Lower uncertainty in acceleration
 
-        # Measurement noise (how noisy are the DVL measurements)
-        ekf.R = np.eye(3) * 0.1  # for velocity [vx, vy, vz]
+        ekf.P = np.diag([
+            initial_pos_var, initial_pos_var, initial_pos_var,       # x, y, z
+            initial_vel_var, initial_vel_var, initial_vel_var,       # vx, vy, vz
+            initial_accel_var, initial_accel_var, initial_accel_var  # ax, ay, az
+        ])
+
+        # --- Process Noise Covariance (Q): how much we expect the model to drift
+        process_pos_noise   = 0.05
+        process_vel_noise   = 0.1
+        process_accel_noise = 0.2
+
+        ekf.Q = np.diag([
+            process_pos_noise, process_pos_noise, process_pos_noise,        # x, y, z
+            process_vel_noise, process_vel_noise, process_vel_noise,        # vx, vy, vz
+            process_accel_noise, process_accel_noise, process_accel_noise   # ax, ay, az
+        ])
+
+        # --- Measurement Noise Covariance (R): uncertainty in DVL velocity measurement
+        dvl_vel_noise = 0.1  # meters/second
+
+        ekf.R = np.diag([
+            dvl_vel_noise, dvl_vel_noise, dvl_vel_noise   # vx, vy, vz
+        ])
 
         return ekf
 

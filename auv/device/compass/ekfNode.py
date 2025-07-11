@@ -6,7 +6,7 @@ from auv.device.dvl import DVL
 import time
 import threading
 import rospy
-from transform3d import euler2mat
+from transforms3d.euler import quat2euler, euler2mat
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import TwistStamped
 from geometry_msgs.msg import PoseStamped

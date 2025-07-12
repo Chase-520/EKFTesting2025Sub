@@ -89,6 +89,31 @@ class SensorFuse:
         except Exception as e:
             rospy.logerr(f"DVL callback error: {str(e)}")
 
+    def barometer_callback(self, msg):
+        """
+        Handles barometric data by unpacking, calculating depth from raw data, then publishes raw data
+
+        Args:
+            msg: Barometric data from corresponding publisher
+        """
+        try:
+            # If the barometric data message has the right ID
+            if msg.msgid == 143:
+                # Unpack the data
+                p = pack("QQ", *msg.payload64)
+                time_boot_ms, press_abs, press_diff, temperature = unpack("Iffhxx", p) # Pressure is in mBar
+
+                # Calculate the depth based on the pressure
+                press_diff = round(press_diff, 2)
+                press_abs = round(press_abs, 2)
+                self.barometer_depth = (press_abs / (997.0474 * 9.80665 * 0.01)) - self.depth_calib
+            
+            if self.calibrated:
+                self.update_depth()
+        # Handle exceptions
+        except Exception as e:
+            rospy.logerr("Barometer unpacking failed")
+            rospy.logerr(e)
     def predict_thread(self):
         while not rospy.is_shutdown():
             with self.ekf_lock:

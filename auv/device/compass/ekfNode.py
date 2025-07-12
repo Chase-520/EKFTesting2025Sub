@@ -71,8 +71,11 @@ class SensorFuse:
             self.dvl_data["vz"] = msg.twist.linear.z
             
             # Get rotation matrix from IMU quaternion
+            yaw = np.deg2rad(self.imu_ori_data['yaw'])
+            pitch = np.deg2rad(self.imu_ori_data['pitch'])
+            roll = np.deg2rad(self.imu_ori_data['roll'])
             with self.ekf_lock:
-                rot_matrix = euler2mat(ai=self.imu_ori_data['yaw'], aj=self.imu_ori_data['pitch'], ak=self.imu_ori_data['roll'], axes='szyx')  # Body-to-world rotation
+                rot_matrix = euler2mat(ai=yaw, aj=pitch, ak=roll, axes='szyx')  # Body-to-world rotation
 
             
             # Convert DVL velocities to numpy array and rotate

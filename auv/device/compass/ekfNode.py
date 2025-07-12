@@ -279,9 +279,9 @@ class SensorFuse:
         # === EKF Configuration for state: [x, y, z, vx, vy, vz, ax, ay, az] ===
 
         # --- Initial State Covariance (P): how uncertain we are about the initial state
-        initial_pos_var   = 100.0  # moderate uncertainty in position
-        initial_vel_var   = 10.0   # Lower uncertainty in velocity
-        initial_accel_var = 10.0    # Lower uncertainty in acceleration
+        initial_pos_var   = 10.0  # moderate uncertainty in position
+        initial_vel_var   = 1.0   # Lower uncertainty in velocity
+        initial_accel_var = 1.0    # Lower uncertainty in acceleration
 
         ekf.P = np.diag([
             initial_pos_var, initial_pos_var, initial_pos_var,       # x, y, z
@@ -290,9 +290,9 @@ class SensorFuse:
         ])
 
         # --- Process Noise Covariance (Q): how much we expect the model to drift
-        process_pos_noise   = 0.05
-        process_vel_noise   = 0.1
-        process_accel_noise = 0.2
+        process_pos_noise   = 0.1
+        process_vel_noise   = 0.05
+        process_accel_noise = 0.01
 
         ekf.Q = np.diag([
             process_pos_noise, process_pos_noise, process_pos_noise,        # x, y, z
@@ -301,7 +301,7 @@ class SensorFuse:
         ])
 
         # --- Measurement Noise Covariance (R): uncertainty in DVL velocity measurement
-        dvl_vel_noise = 0.1  # meters/second
+        dvl_vel_noise = 0.01  # meters/second
 
         ekf.R = np.diag([
             dvl_vel_noise, dvl_vel_noise, dvl_vel_noise   # vx, vy, vz

@@ -15,7 +15,6 @@ class process:
         self.imu_sub = rospy.Subscriber("/auv/devices/vectornav", Imu, self.IMUcallback)
         self.imu_acc_data   = {"ax": 0, "ay": 0, "az": 0}
         self.imu_ori_data   = {"yaw": 0, "pitch": 0, "roll": 0}  # store one line of IMU data for ekf predict
-        self.ypr = []
 
     def DVLcallback(self,vel):
         yaw = self.imu_ori_data['yaw']
@@ -25,7 +24,7 @@ class process:
 
         vel_body = np.array([vel.twist.linear.x,vel.twist.linear.y,vel.twist.linear.z])
         vel_world = rot_Matrix @ vel_body
-        
+
         msg = TwistStamped()
         msg.header.stamp = rospy.Time.now()
         msg.header.frame_id = "base_link"  # or "dvl_link", "odom", etc.
@@ -49,3 +48,7 @@ class process:
         self.imu_ori_data['roll'] = msg.orientation.x
         self.imu_ori_data['pitch'] = (msg.orientation.y + 180) % 360
         self.imu_ori_data['yaw'] = msg.orientation.z
+
+if __name__=="__main__":
+    object = process()
+    rospy.spin()

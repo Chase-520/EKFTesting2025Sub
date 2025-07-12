@@ -60,7 +60,7 @@ class SensorFuse:
         self.imu_acc_data["az"] = msg.linear_acceleration.z
 
         self.imu_ori_data['roll'] = msg.orientation.x
-        self.imu_ori_data['pitch'] = msg.orientation.y
+        self.imu_ori_data['pitch'] = (msg.orientation.y + 180) % 360
         self.imu_ori_data['yaw'] = msg.orientation.z
 
     def dvl_callback(self, msg):

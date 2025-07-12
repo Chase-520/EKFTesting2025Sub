@@ -17,9 +17,9 @@ class process:
         self.imu_ori_data   = {"yaw": 0, "pitch": 0, "roll": 0}  # store one line of IMU data for ekf predict
 
     def DVLcallback(self,vel):
-        yaw = self.imu_ori_data['yaw']
-        pitch = self.imu_ori_data['pitch']
-        roll = self.imu_ori_data['roll']
+        yaw = np.deg2rad(self.imu_ori_data['yaw'])
+        pitch = np.deg2rad(self.imu_ori_data['pitch'])
+        roll = np.deg2rad(self.imu_ori_data['roll'])
         rot_Matrix = euler2mat(ai=yaw, aj=pitch , ak=roll, axes='szyx')
         R_yaw = np.array([
         [np.cos(yaw), -np.sin(yaw), 0],

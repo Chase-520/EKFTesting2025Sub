@@ -66,15 +66,19 @@ class process:
         imu_msg.linear_acceleration.y = -msg.linear_acceleration.y
         imu_msg.linear_acceleration.z = -msg.linear_acceleration.z
 
-        q = euler2quat(ai=np.deg2rad(msg.orientation.z),
-                       aj=np.deg2rad((msg.orientation.y + 180) % 360),
-                       ak=np.deg2rad(msg.orientation.z),
-                       axes='szyx'
-                       )
-        imu_msg.orientation.x = q[1]
-        imu_msg.orientation.y = q[2]
-        imu_msg.orientation.z = q[3]
-        imu_msg.orientation.w = q[0]
+        # q = euler2quat(ai=np.deg2rad(msg.orientation.z),
+        #                aj=np.deg2rad((msg.orientation.y + 180) % 360),
+        #                ak=np.deg2rad(msg.orientation.z),
+        #                axes='szyx'
+        #                )
+        # imu_msg.orientation.x = q[1]
+        # imu_msg.orientation.y = q[2]
+        # imu_msg.orientation.z = q[3]
+        # imu_msg.orientation.w = q[0]
+        imu_msg.orientation.x = 0
+        imu_msg.orientation.y = 0
+        imu_msg.orientation.z = 0
+        imu_msg.orientation.w = 0
         imu_msg.orientation_covariance[0] = -1
 
         self.imu_pub.publish(imu_msg)

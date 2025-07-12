@@ -21,13 +21,13 @@ class process:
         pitch = np.deg2rad(self.imu_ori_data['pitch'])
         roll = np.deg2rad(self.imu_ori_data['roll'])
         rot_Matrix = euler2mat(ai=yaw, aj=pitch , ak=roll, axes='szyx')
-        R_yaw = np.array([
-        [np.cos(yaw), -np.sin(yaw), 0],
-        [np.sin(yaw),  np.cos(yaw), 0],
-        [0,            0,           1]
-        ])
+        # R_yaw = np.array([
+        # [np.cos(yaw), -np.sin(yaw), 0],
+        # [np.sin(yaw),  np.cos(yaw), 0],
+        # [0,            0,           1]
+        # ])
         vel_body = np.array([vel.twist.linear.x,vel.twist.linear.y,vel.twist.linear.z])
-        vel_world = R_yaw @ vel_body
+        vel_world = rot_Matrix @ vel_body
 
         msg = TwistStamped()
         msg.header.stamp = rospy.Time.now()

@@ -11,5 +11,12 @@
         10,
         0.75
     ],
-    "depth_pid_offset": 1490
+    "depth_pid_offset": 1490,
+    "initial_pos_var" : 1.0,
+    "initial_vel_var" : 1.0,
+    "initial_accel_var" : 1.0,
+    "process_pos_noise" : 0.1,
+    "process_vel_noise" : 0.05,
+    "process_accel_noise" : 0.01,
+    "dvl_vel_noise" : 0.01
 }

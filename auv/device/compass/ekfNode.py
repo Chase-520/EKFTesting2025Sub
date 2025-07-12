@@ -80,11 +80,11 @@ class SensorFuse:
                             self.dvl_data["vy"],
                             self.dvl_data["vz"]])
             
-            # v_global = rot_matrix @ v_body  # (3,3) @ (3,) -> (3,)
+            v_global = rot_matrix @ v_body  # (3,3) @ (3,) -> (3,)
             
             # Store rotated velocity for EKF update
-            # self.dvl_array = v_global.reshape(-1, 1)  # Convert to column vector
-            self.dvl_array = v_body.reshape(-1,1)
+            self.dvl_array = v_global.reshape(-1, 1)  # Convert to column vector
+            # self.dvl_array = v_body.reshape(-1,1)
             
             self.update_dvl()
         except Exception as e:

@@ -23,8 +23,8 @@ class SensorFuse:
         # Initialize node
         rospy.init_node('ekfNode', anonymous=True)
         self.pub = rospy.Publisher('/auv/state/pose', PoseStamped, queue_size=10)
-        self.dt = 1.0 / 100.0  # Default prediction rate (50 Hz)
-        self.rate = rospy.Rate(100)  # 10 Hz
+        self.dt = 1.0 / 10.0  # Default prediction rate (50 Hz)
+        self.rate = rospy.Rate(10)  # 10 Hz
         self.ekf_lock = threading.Lock()
         
 

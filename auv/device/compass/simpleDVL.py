@@ -10,7 +10,7 @@ import threading
 class SimpleIntegrator:
     def __init__(self):
         rospy.init_node("simple_dvl_integrator")
-        self.pose_pub = rospy.Publisher("/auv/state/pose_integrated", PoseStamped, queue_size=10)
+        self.pose_pub = rospy.Publisher("/auv/state/pose", PoseStamped, queue_size=10)
 
         self.lock = threading.Lock()
         self.last_time = None

@@ -123,6 +123,7 @@ class SensorFuse:
             with self.ekf_lock:
                 self.ekf.F = self.FJacobian_at(self.ekf.x, self.dt)
                 self.ekf.predict()
+            self.position = self.ekf.x[0:3]
             self.publish()
             self.rate.sleep()
 
@@ -130,7 +131,6 @@ class SensorFuse:
         with self.ekf_lock:
             z = self.dvl_array.reshape(-1, 1)  # Keep as 1D vector (3,)
             self.ekf.update(z, self.H_velocity, self.hx_velocity)
-            self.position = self.ekf.x[0:3]
     
     def update_depth(self):
         with self.ekf_lock:

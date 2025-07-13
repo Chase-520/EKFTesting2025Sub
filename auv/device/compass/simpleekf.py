@@ -18,7 +18,7 @@ class SimpleEKF:
         self.P = np.eye(6) * 0.1
 
         # Process noise
-        self.Q = np.diag([0.01]*3 + [0.1]*3)
+        self.Q = np.diag([0.01]*3 + [0.3]*3)
 
         # Measurement noise (DVL)
         self.R_dvl = np.eye(3) * 0.05

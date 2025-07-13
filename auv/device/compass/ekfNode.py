@@ -58,10 +58,22 @@ class SensorFuse:
         self.imu_acc_data["ax"] = msg.linear_acceleration.x
         self.imu_acc_data["ay"] = msg.linear_acceleration.y
         self.imu_acc_data["az"] = msg.linear_acceleration.z
+        acc_body = np.array([msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z]).reshape(3, 1)
 
         self.imu_ori_data['roll'] = msg.orientation.x
         self.imu_ori_data['pitch'] = (msg.orientation.y + 180) % 360
         self.imu_ori_data['yaw'] = msg.orientation.z
+
+        yaw = np.deg2rad(msg.orientation.z)
+        pitch = np.deg2rad((msg.orientation.y + 180) % 360)
+        roll = np.deg2rad(msg.orientation.x)
+        with self.ekf_lock:
+            rot_matrix = euler2mat(ai=yaw, aj=pitch, ak=roll, axes='szyx')  # Body-to-world rotation
+
+        accel_world =  rot_matrix @ acc_body
+        # R matrix for accel noise (tune this!)
+        R_acc = np.diag([0.2, 0.2, 0.2])  # or use deviceHelper if you have accel_noise
+        self.ekf.update(accel_world, self.H_accel, self.hx_accel, R=R_acc)
 
     def dvl_callback(self, msg):
         try:
@@ -264,6 +276,18 @@ class SensorFuse:
         H[0, 0] = 1
         H[1, 1] = 1
         H[2, 2] = 1
+        return H
+
+    @staticmethod
+    def hx_accel(x):
+        return x[6:9]  # ax, ay, az
+    
+    @staticmethod
+    def H_accel(x):
+        H = np.zeros((3, 9))
+        H[0, 6] = 1
+        H[1, 7] = 1
+        H[2, 8] = 1
         return H
 
     # ------------- Extended Kalman Filter ----------------

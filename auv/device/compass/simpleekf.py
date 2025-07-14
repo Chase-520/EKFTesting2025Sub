@@ -41,6 +41,8 @@ class SimpleEKF:
         rospy.Subscriber("/mavlink/from", Mavlink, self.barometer_callback)
         self.pub = rospy.Publisher("/auv/state/pose", PoseStamped, queue_size=10)
 
+        # self.calibrate_depth()
+        
         rospy.Timer(rospy.Duration(self.dt), self.ekf_step)
 
     def predict(self):
@@ -124,7 +126,7 @@ class SimpleEKF:
         pose_msg.pose.position.y = self.x[1, 0]
         pose_msg.pose.position.z = self.x[2, 0]
 
-        pose_msg.pose.orientation.w = 
+        pose_msg.pose.orientation.w = 1
         self.pub.publish(pose_msg)
 
     def calibrate_depth(self):

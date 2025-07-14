@@ -31,16 +31,20 @@ class SimpleEKF:
         self.last_time = rospy.Time.now()
 
         self.dvl_velocity = np.zeros((3, 1))
-        self.depth = None
-        self.depth_calib = 0
-        self.calibrated = False
-
+        
+        self.imu_sub        = rospy.Subscriber("/auv/devices/vectornav", Imu, self.imu_callback)
         self.imu_acc_data   = {"ax": 0, "ay": 0, "az": 0}
         self.imu_ori_data   = {"yaw": 0, "pitch": 0, "roll": 0}  # store one line of IMU data for ekf predict
+        self.imu_array = np.zeros((3, 1))  # Before first IMU callback
 
-        rospy.Subscriber("/auv/devices/dvl/velocity", TwistStamped, self.dvl_callback)
-        rospy.Subscriber("/auv/devices/vectornav",Imu, self.imu_callback)
-        rospy.Subscriber("/mavlink/from", Mavlink, self.barometer_callback)
+        self.dvl_sub    = rospy.Subscriber("/auv/devices/dvl/velocity",TwistStamped, self.dvl_callback)
+        self.dvl_data   = {"vx": 0, "vy": 0, "vz": 0}
+        self.dvl_array  = np.zeros((3, 1)) # used for passing into the ekf
+
+        self.baro_sub           = rospy.Subscriber("/mavlink/from", Mavlink, self.barometer_callback)
+        self.depth              = None
+        self.depth_calib        = 0
+        self.calibrated         = False
         self.pub = rospy.Publisher("/auv/state/pose", PoseStamped, queue_size=10)
 
         self.calibrate_depth()

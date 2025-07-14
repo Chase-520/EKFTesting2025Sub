@@ -41,7 +41,7 @@ class SimpleEKF:
         rospy.Subscriber("/mavlink/from", Mavlink, self.barometer_callback)
         self.pub = rospy.Publisher("/auv/state/pose", PoseStamped, queue_size=10)
 
-        # self.calibrate_depth()
+        self.calibrate_depth()
         
         rospy.Timer(rospy.Duration(self.dt), self.ekf_step)
 
@@ -144,4 +144,5 @@ class SimpleEKF:
 if __name__ == "__main__":
     ekf = SimpleEKF()
     rospy.sleep(2)
+    rospy.loginfo("Running the simple ekf node")
     rospy.spin()

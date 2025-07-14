@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import numpy as np
 import rospy
+import time
+from statistics import mean
 from geometry_msgs.msg import TwistStamped, PoseStamped
 from sensor_msgs.msg import Imu
 from mavros_msgs.msg import Mavlink
@@ -129,17 +131,36 @@ class SimpleEKF:
         pose_msg.pose.orientation.w = 1
         self.pub.publish(pose_msg)
 
-    def calibrate_depth(self):
-        rospy.loginfo("Calibrating depth...")
+    def calibrate_depth(self, sample_time=3):
+        """
+        To calibrate the depth data
+
+        Args:
+            sample_time (int): The number of seconds taken to calibrate the data        
+        """
+        rospy.loginfo("Starting Depth Calibration...")
         samples = []
-        rate = rospy.Rate(50)
-        for _ in range(50):  # 1 second
-            if self.depth is not None:
-                samples.append(self.depth)
-            rate.sleep()
-        self.depth_calib = np.mean(samples)
+
+        # Wait for depth data
+        while self.barometer_depth == None:
+            rospy.sleep(0.1)
+            pass
+
+
+        prevDepth = self.barometer_depth
+        start_time = time.time()
+
+        # Collect data for sample_time seconds, then calculate the mean
+        while time.time() - start_time < sample_time:
+            if self.barometer_depth == prevDepth:
+                continue
+
+            samples.append(self.barometer_depth)
+            prevDepth = self.barometer_depth
+
+        self.depth_calib = mean(samples)
         self.calibrated = True
-        rospy.loginfo(f"Calibrated depth offset: {self.depth_calib:.2f} m")
+        rospy.loginfo(f"depth calibration Finished. Surface is: {self.depth_calib}")
 
 if __name__ == "__main__":
     ekf = SimpleEKF()

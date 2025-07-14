@@ -37,7 +37,7 @@ class SimpleEKF:
         self.imu_ori_data   = {"yaw": 0, "pitch": 0, "roll": 0}  # store one line of IMU data for ekf predict
 
         rospy.Subscriber("/auv/devices/dvl/velocity", TwistStamped, self.dvl_callback)
-        rospy.Subscriber("/auv/devices/vectornav",)
+        rospy.Subscriber("/auv/devices/vectornav",Imu, self.imu_callback)
         rospy.Subscriber("/mavlink/from", Mavlink, self.barometer_callback)
         self.pub = rospy.Publisher("/auv/state/pose", PoseStamped, queue_size=10)
 

@@ -146,21 +146,21 @@ class SimpleEKF:
         samples = []
 
         # Wait for depth data
-        while self.barometer_depth == None:
+        while self.depth == None:
             rospy.sleep(0.1)
             pass
 
 
-        prevDepth = self.barometer_depth
+        prevDepth = self.depth
         start_time = time.time()
 
         # Collect data for sample_time seconds, then calculate the mean
         while time.time() - start_time < sample_time:
-            if self.barometer_depth == prevDepth:
+            if self.depth == prevDepth:
                 continue
 
-            samples.append(self.barometer_depth)
-            prevDepth = self.barometer_depth
+            samples.append(self.depth)
+            prevDepth = self.depth
 
         self.depth_calib = mean(samples)
         self.calibrated = True

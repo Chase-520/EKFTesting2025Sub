@@ -144,5 +144,4 @@ class SimpleEKF:
 if __name__ == "__main__":
     ekf = SimpleEKF()
     rospy.sleep(2)
-    ekf.calibrate_depth()
     rospy.spin()

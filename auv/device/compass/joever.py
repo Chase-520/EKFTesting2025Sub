@@ -16,7 +16,7 @@ from statistics import mean
 from geometry_msgs.msg import TwistStamped, PoseStamped
 from sensor_msgs.msg import Imu
 from mavros_msgs.msg import Mavlink
-from trnasforms3d.euler import euler2mat
+from transforms3d.euler import euler2mat
 
 GRAV = 9.80665            # m s⁻²  (positive down if ENU)
 

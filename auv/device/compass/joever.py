@@ -177,14 +177,14 @@ class SimpleEKFNode:
     def publish(self, stamp):
         pose = PoseStamped()
         pose.header.stamp = stamp
-        pose.header.frame_id = "world"
+        pose.header.frame_id = "base_link"
         pose.pose.orientation.w = 1.0
         pose.pose.position.x, pose.pose.position.y, pose.pose.position.z = self.ekf.x[0:3,0]
         self.pub_pose.publish(pose)
 
         twist = TwistStamped()
         twist.header.stamp = stamp
-        twist.header.frame_id = "world"
+        twist.header.frame_id = "base_llink"
         twist.twist.linear.x, twist.twist.linear.y, twist.twist.linear.z = self.ekf.x[3:6,0]
         self.pub_twist.publish(twist)
 

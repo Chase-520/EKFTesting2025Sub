@@ -16,7 +16,7 @@ from statistics import mean
 from geometry_msgs.msg import TwistStamped, PoseStamped
 from sensor_msgs.msg import Imu
 from mavros_msgs.msg import Mavlink
-from tf.transformations import quaternion_matrix
+from trnasforms3d.euler import euler2mat
 
 GRAV = 9.80665            # m s⁻²  (positive down if ENU)
 
@@ -95,7 +95,7 @@ class SimpleEKFNode:
                              np.array([[r_baro]]))
 
         # ── state for callbacks ───────────────────────────────────────────────
-        self.q_body_to_world = np.array([0,0,0,1], dtype=float)  # (x,y,z,w)
+        self.e_body_to_world = np.array([0,0,0], dtype=float)  # (z,y,x) (yaw, pitch, roll)
         self.last_accel_b    = np.zeros((3,1))
         self.last_dvl_world  = np.zeros((3,1))
         self.last_dvl_stamp  = rospy.Time(0)
@@ -120,10 +120,10 @@ class SimpleEKFNode:
     # ───────────────────────────── callbacks ─────────────────────────────────
     def cb_imu(self, msg: Imu):
         # store quaternion (geometry_msgs uses (x,y,z,w))
-        self.q_body_to_world = np.array([msg.orientation.x,
-                                         msg.orientation.y,
-                                         msg.orientation.z,
-                                         msg.orientation.w], dtype=float)
+        self.e_body_to_world = np.array([np.deg2rad(msg.orientation.z),
+                                         np.deg2rad(msg.orientation.y),
+                                         np.deg2rad(msg.orientation.x),], dtype=float)
+        
         # body-frame accel
         self.last_accel_b = np.array([[msg.linear_acceleration.x],
                                       [msg.linear_acceleration.y],
@@ -131,7 +131,8 @@ class SimpleEKFNode:
 
     def cb_dvl(self, msg: TwistStamped):
         # rotate body‑frame velocity to world frame
-        R = quaternion_matrix(self.q_body_to_world)[:3,:3]
+        yaw,pitch,roll = self.e_body_to_world
+        R = euler2mat(ai=yaw, aj=pitch, ak=roll, axes='szyx')
         body_v = np.array([[msg.twist.linear.x],
                            [msg.twist.linear.y],
                            [msg.twist.linear.z]])
@@ -156,7 +157,8 @@ class SimpleEKFNode:
 
         # ---- prediction -----------------------------------------------------
         # rotate accel to world frame & subtract gravity
-        R = quaternion_matrix(self.q_body_to_world)[:3,:3]
+        yaw,pitch,roll = self.e_body_to_world
+        R = euler2mat(ai=yaw, aj=pitch, ak=roll, axes='szyx')
         accel_n = R @ self.last_accel_b
         accel_n[2] += GRAV      # ENU: gravity is negative Z
 

@@ -76,7 +76,7 @@ class SimpleEKFNode:
         rospy.init_node("simple_ekf_node")
 
         # ── parameters ────────────────────────────────────────────────────────
-        self.topic_imu   = rospy.get_param("~topic_imu",  "/auv/devices/vectornav")
+        self.topic_imu   = rospy.get_param("~topic_imu",  "/auv/devices/vectornav/cor")
         self.topic_dvl   = rospy.get_param("~topic_dvl",  "/auv/devices/dvl/velocity")
         self.topic_baro  = rospy.get_param("~topic_baro", "/mavlink/from")
         self.pub_pose_t  = rospy.get_param("~pub_pose",   "/auv/state/pose")

@@ -90,6 +90,10 @@ class EKFNode:
         self.imu_acc_data["ay"] = msg.linear_acceleration.y
         self.imu_acc_data["az"] = msg.linear_acceleration.z
 
+        """
+        Since our IMU outputs orientation as Euler angles (yaw, pitch, roll), and the ROS sensor_msgs/Imu message only supports orientation in quaternion format, I’ve been passing the yaw, pitch, and roll directly into the ZYX fields of the message, and leaving the quaternion w field empty.
+        This obviously isn't correct, but I was doing it as a temporary workaround to get a precise rotation matrix — just plugging in the angles without properly converting them to a valid quaternion.
+        """
         self.imu_ori_data['roll'] = msg.orientation.x
         self.imu_ori_data['pitch'] = (msg.orientation.y + 180) % 360
         self.imu_ori_data['yaw'] = msg.orientation.z

@@ -96,7 +96,7 @@ class EKFNode:
         """
         self.imu_ori_data['roll'] = msg.orientation.x
         self.imu_ori_data['pitch'] = (msg.orientation.y + 180) % 360
-        self.imu_ori_data['yaw'] = msg.orientation.z
+        self.imu_ori_data['yaw'] = (90 - msg.orientation.z) % 360
 
     def dvl_callback(self, msg):
         yaw = np.deg2rad(self.imu_ori_data['yaw'])

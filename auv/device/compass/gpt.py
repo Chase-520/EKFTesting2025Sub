@@ -103,7 +103,7 @@ class EKFNode:
         pitch = np.deg2rad(self.imu_ori_data['pitch'])
         roll = np.deg2rad(self.imu_ori_data['roll'])
 
-        rot_matrix = euler2mat(ai=roll, aj=pitch, ak=yaw, axes='szyx')  # Body-to-world rotation
+        rot_matrix = euler2mat(ai=yaw, aj=pitch, ak=roll, axes='szyx')  # Body-to-world rotation
         self.dvl_velocity = rot_matrix @ np.array([
             [msg.twist.linear.x],
             [msg.twist.linear.y],

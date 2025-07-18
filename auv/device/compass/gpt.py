@@ -6,7 +6,27 @@ from statistics import mean
 from geometry_msgs.msg import TwistStamped, PoseStamped
 from sensor_msgs.msg import Imu
 from mavros_msgs.msg import Mavlink
-from transforms3d.euler import euler2mat
+
+
+def euler2mat(yaw,pitch,roll):
+    cz, sz = np.cos(yaw), np.sin(yaw)
+    cy, sy = np.cos(pitch), np.sin(pitch)
+    cx, sx = np.cos(roll), np.sin(roll)
+
+    Rz = np.array([[cz, -sz, 0],
+                   [sz, cz, 0],
+                   [0, 0, 1]])
+
+    Ry = np.array([[cy, 0, sy],
+                   [0, 1, 0],
+                   [-sy, 0, cy]])
+
+    Rx = np.array([[1, 0, 0],
+                   [0, cx, -sx],
+                   [0, sx, cx]])
+
+    R = Rz @ Ry @ Rx
+    return R
 
 class EKF6State:
     def __init__(self, dt):
@@ -103,7 +123,7 @@ class EKFNode:
         pitch = np.deg2rad(self.imu_ori_data['pitch'])
         roll = np.deg2rad(self.imu_ori_data['roll'])
 
-        rot_matrix = euler2mat(ai=yaw, aj=pitch, ak=roll, axes='szyx')  # Body-to-world rotation
+        rot_matrix = euler2mat(ai=yaw, aj=pitch, ak=roll)  # Body-to-world rotation
         self.dvl_velocity = rot_matrix @ np.array([
             [msg.twist.linear.x],
             [msg.twist.linear.y],

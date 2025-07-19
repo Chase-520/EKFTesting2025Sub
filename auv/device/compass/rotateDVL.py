@@ -12,7 +12,7 @@ class process:
 
         self.dvl_pub = rospy.Publisher('/auv/devices/dvl/velrot', TwistStamped, queue_size=10)
         self.dvl_sub = rospy.Subscriber("/auv/devices/dvl/velocity",TwistStamped, self.DVLcallback)
-        self.imu_pub = rospy.Publisher('auv/devices/vectornav/cor',Imu, queue_size=10)
+        self.imu_pub = rospy.Publisher('auv/devices/vectornavCor/',Imu, queue_size=10)
         self.imu_sub = rospy.Subscriber("/auv/devices/vectornav", Imu, self.IMUcallback)
         self.imu_acc_data   = {"ax": 0, "ay": 0, "az": 0}
         self.imu_ori_data   = {"yaw": 0, "pitch": 0, "roll": 0}  # store one line of IMU data for ekf predict

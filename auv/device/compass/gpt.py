@@ -98,7 +98,7 @@ class EKFNode:
 
         self.pub = rospy.Publisher("/auv/state/pose", PoseStamped, queue_size=10)
 
-        self.imu_sub = rospy.Subscriber("/auv/devices/vectornav", Imu, self.imu_callback)
+        self.imu_sub = rospy.Subscriber("/auv/devices/vectornavCor", Imu, self.imu_callback)
         self.dvl_sub = rospy.Subscriber("/auv/devices/dvl/velocity", TwistStamped, self.dvl_callback)
         self.baro_sub = rospy.Subscriber("/mavlink/from", Mavlink, self.barometer_callback)
 

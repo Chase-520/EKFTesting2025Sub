@@ -45,19 +45,20 @@ class EKF6State:
         # Measurement noise (barometer)
         self.R_baro = np.array([[0.05]])
 
-        # IMU predict calculation
+        self.dt = dt
+
+        # State transition matrix (constant for fixed dt)
+        self.F = np.eye(6)
+        self.F[0, 3] = self.dt
+        self.F[1, 4] = self.dt
+        self.F[2, 5] = self.dt
+
+        # Control matrix (acceleration as input)
         self.B = np.zeros((6, 3))
         self.B[0:3, :] = 0.5 * self.dt**2 * np.eye(3)
         self.B[3:6, :] = self.dt * np.eye(3)
 
-        self.dt = dt
-
     def predict(self, u_world):
-        F = np.eye(6)
-        F[0, 3] = self.dt
-        F[1, 4] = self.dt
-        F[2, 5] = self.dt
-
         self.x = self.F @ self.x + self.B @ u_world
         self.P = self.F @ self.P @ self.F.T + self.Q
 
@@ -85,6 +86,7 @@ class EKF6State:
 
         self.x += K @ y
         self.P = (np.eye(6) - K @ H) @ self.P
+
 
 class EKFNode:
     def __init__(self):

@@ -4,29 +4,10 @@ import rospy
 import time
 from statistics import mean
 from geometry_msgs.msg import TwistStamped, PoseStamped
+from std_msgs.msg import Float64
 from sensor_msgs.msg import Imu
 from mavros_msgs.msg import Mavlink
-
-
-def euler2mat(yaw,pitch,roll):
-    cz, sz = np.cos(yaw), np.sin(yaw)
-    cy, sy = np.cos(pitch), np.sin(pitch)
-    cx, sx = np.cos(roll), np.sin(roll)
-
-    Rz = np.array([[cz, -sz, 0],
-                   [sz, cz, 0],
-                   [0, 0, 1]])
-
-    Ry = np.array([[cy, 0, sy],
-                   [0, 1, 0],
-                   [-sy, 0, cy]])
-
-    Rx = np.array([[1, 0, 0],
-                   [0, cx, -sx],
-                   [0, sx, cx]])
-
-    R = Rz @ Ry @ Rx
-    return R
+from transforms3d.euler import euler2mat
 
 class EKF6State:
     def __init__(self, dt):
@@ -47,20 +28,14 @@ class EKF6State:
 
         self.dt = dt
 
-        # State transition matrix (constant for fixed dt)
-        self.F = np.eye(6)
-        self.F[0, 3] = self.dt
-        self.F[1, 4] = self.dt
-        self.F[2, 5] = self.dt
+    def predict(self):
+        F = np.eye(6)
+        F[0, 3] = self.dt
+        F[1, 4] = self.dt
+        F[2, 5] = self.dt
 
-        # Control matrix (acceleration as input)
-        self.B = np.zeros((6, 3))
-        self.B[0:3, :] = 0.5 * self.dt**2 * np.eye(3)
-        self.B[3:6, :] = self.dt * np.eye(3)
-
-    def predict(self, u_world):
-        self.x = self.F @ self.x + self.B @ u_world
-        self.P = self.F @ self.P @ self.F.T + self.Q
+        self.x = F @ self.x
+        self.P = F @ self.P @ F.T + self.Q
 
     def update_dvl(self, z):
         H = np.zeros((3, 6))
@@ -87,7 +62,6 @@ class EKF6State:
         self.x += K @ y
         self.P = (np.eye(6) - K @ H) @ self.P
 
-
 class EKFNode:
     def __init__(self):
         rospy.init_node("ekf_6d_node")
@@ -97,7 +71,7 @@ class EKFNode:
 
         self.dvl_velocity = np.zeros((3, 1))
         self.imu_acc_data = {"ax": 0, "ay": 0, "az": 0}
-        self.imu_ori_data = {"yaw": 0, "pitch": 0, "roll": 0}
+        self.orientation = {"yaw": 0, "pitch": 0, "roll": 0}
 
         self.depth = None
         self.depth_calib = 0
@@ -105,11 +79,10 @@ class EKFNode:
 
         self.pub = rospy.Publisher("/auv/state/pose", PoseStamped, queue_size=10)
 
-        self.imu_sub = rospy.Subscriber("/auv/devices/vectornavCor", Imu, self.imu_callback)
+        self.imu_sub = rospy.Subscriber("/auv/devices/vectornav", Imu, self.imu_callback)
         self.dvl_sub = rospy.Subscriber("/auv/devices/dvl/velocity", TwistStamped, self.dvl_callback)
+        self.fog_sub = rospy.Subscriber("/auv/devices/fog", Float64, self.fog_callback)
         self.baro_sub = rospy.Subscriber("/mavlink/from", Mavlink, self.barometer_callback)
-
-
 
         self.calibrate_depth()
         rospy.Timer(rospy.Duration(self.dt), self.ekf_step)
@@ -123,16 +96,22 @@ class EKFNode:
         Since our IMU outputs orientation as Euler angles (yaw, pitch, roll), and the ROS sensor_msgs/Imu message only supports orientation in quaternion format, I’ve been passing the yaw, pitch, and roll directly into the ZYX fields of the message, and leaving the quaternion w field empty.
         This obviously isn't correct, but I was doing it as a temporary workaround to get a precise rotation matrix — just plugging in the angles without properly converting them to a valid quaternion.
         """
-        self.imu_ori_data['roll'] = msg.orientation.x
-        self.imu_ori_data['pitch'] = (msg.orientation.y + 180) % 360
-        self.imu_ori_data['yaw'] = msg.orientation.z
+        self.orientation['roll'] = msg.orientation.x
+        self.orientation['pitch'] = (msg.orientation.y + 180) % 360
+        # if self.sub=="graey":
+        #     # Only use IMU heading when we don't have FOG
+        #     self.orientation['yaw'] = msg.orientation.z   
+
+    def fog_callback(self, msg):
+        # Use FOG heading instead of IMU heading
+        self.orientation['yaw'] = msg.data 
 
     def dvl_callback(self, msg):
-        yaw = np.deg2rad(self.imu_ori_data['yaw'])
-        pitch = np.deg2rad(self.imu_ori_data['pitch'])
-        roll = np.deg2rad(self.imu_ori_data['roll'])
+        yaw = np.deg2rad(self.orientation['yaw'])
+        pitch = np.deg2rad(self.orientation['pitch'])
+        roll = np.deg2rad(self.orientation['roll'])
 
-        rot_matrix = euler2mat(yaw, pitch, roll)  # Body-to-world rotation
+        rot_matrix = euler2mat(ai=yaw, aj=pitch, ak=roll, axes='szyx')  # Body-to-world rotation
         self.dvl_velocity = rot_matrix @ np.array([
             [msg.twist.linear.x],
             [msg.twist.linear.y],
@@ -150,36 +129,11 @@ class EKFNode:
             pass
 
     def ekf_step(self, event):
-        # Convert IMU Euler angles to radians
-        yaw = np.deg2rad(self.imu_ori_data['yaw'])
-        pitch = np.deg2rad(self.imu_ori_data['pitch'])
-        roll = np.deg2rad(self.imu_ori_data['roll'])
-
-        # Rotate acceleration from body to world frame
-        rot_matrix = euler2mat(yaw, pitch, roll)
-
-        acc_body = np.array([
-            [self.imu_acc_data["ax"]],
-            [self.imu_acc_data["ay"]],
-            [self.imu_acc_data["az"]]
-        ])
-
-        # Convert to world-frame acceleration
-        acc_world = rot_matrix @ acc_body
-
-        # Predict step with acceleration input
-        self.ekf.predict(acc_world)
-
-        # DVL update (velocity in world frame)
+        self.ekf.predict()
         self.ekf.update_dvl(self.dvl_velocity)
-
-        # Depth update (if calibrated)
         if self.depth is not None and self.calibrated:
             self.ekf.update_depth(self.depth)
-
-        # Publish updated pose
         self.publish_pose()
-
 
     def publish_pose(self):
         pose_msg = PoseStamped()
@@ -190,9 +144,9 @@ class EKFNode:
         pose_msg.pose.position.y = self.ekf.x[1, 0]
         pose_msg.pose.position.z = self.ekf.x[2, 0]
 
-        pose_msg.pose.orientation.x = self.imu_ori_data['roll']
-        pose_msg.pose.orientation.y = self.imu_ori_data['pitch']
-        pose_msg.pose.orientation.z = self.imu_ori_data['yaw']
+        pose_msg.pose.orientation.x = self.orientation['roll']
+        pose_msg.pose.orientation.y = self.orientation['pitch']
+        pose_msg.pose.orientation.z = self.orientation['yaw']
         pose_msg.pose.orientation.w = 1.0
         self.pub.publish(pose_msg)
 

@@ -28,7 +28,7 @@ df['vy'] = df['field.twist.linear.y'].map(flatten_val)
 print("Min %time:", df['%time'].min())
 print("Max %time:", df['%time'].max())
 time_min, time_max = 4.8, 5.2
-window_df = df[(df['%time'] >= time_min) & (df['%time'] <= time_max)]
+window_df = df
 print(window_df.head())
 # Filter out rows with NaN in vx or vy
 window_df = window_df.dropna(subset=['vx', 'vy'])

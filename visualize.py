@@ -1,68 +1,73 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+import ast
 
-# Path to the CSV file
 csv_path = "output.csv"
-
-# Output folder for plots
 plot_dir = "plots"
 os.makedirs(plot_dir, exist_ok=True)
 
-# Load CSV
 df = pd.read_csv(csv_path)
 
-# Try to detect a time column
-time_col = None
-for col in df.columns:
-    if 'time' in col.lower():
-        time_col = col
-        break
+# Use %time as x-axis
+df['%time'] = pd.to_numeric(df['%time'], errors='coerce')
+time_col = '%time'
 
-if time_col is None:
-    print("⚠️ No time column found. Using row index as x-axis.")
-    df['index'] = df.index
-    time_col = 'index'
+# Flatten stringified lists like "[0.1]"
+def flatten_column(series):
+    def convert(val):
+        if isinstance(val, str) and val.startswith('['):
+            try:
+                parsed = ast.literal_eval(val)
+                if isinstance(parsed, list) and len(parsed) == 1:
+                    return parsed[0]
+            except:
+                return None
+        return val
+    return series.apply(convert)
 
-# Ensure time column is numeric
-df[time_col] = pd.to_numeric(df[time_col], errors='coerce')
+# Target fields
+target_cols = [
+    'field.twist.linear.x',
+    'field.twist.linear.y',
+    'field.twist.linear.z',
+    'field.twist.angular.x',
+    'field.twist.angular.y',
+    'field.twist.angular.z'
+]
 
-# Get numeric columns (excluding time)
-numeric_cols = df.select_dtypes(include='number').columns.tolist()
-numeric_cols = [col for col in numeric_cols if col != time_col]
+# Process and plot
+for col in target_cols:
+    if col not in df.columns:
+        print(f"  ⛔ Missing column: {col}")
+        continue
 
-if not numeric_cols:
-    print("❌ No numeric columns to plot.")
-    exit()
-
-# Plot each numeric column
-for col in numeric_cols:
     try:
-        # Convert to numeric, drop NaNs
-        y = pd.to_numeric(df[col], errors='coerce')
+        series = flatten_column(df[col])
+        y = pd.to_numeric(series, errors='coerce')
         x = df[time_col]
         mask = (~x.isna()) & (~y.isna())
         x = x[mask]
         y = y[mask]
 
-        if len(x) == 0 or len(y) == 0:
-            print(f"⚠️ Skipping column '{col}': no valid data to plot.")
+        if len(x) == 0:
+            print(f"  ⚠️ No valid data for: {col}")
             continue
 
         plt.figure(figsize=(10, 4))
         plt.plot(x, y, label=col)
-        plt.xlabel(time_col)
+        plt.xlabel("Time (s)")
         plt.ylabel(col)
-        plt.title(f"{col} vs {time_col}")
+        plt.title(col)
         plt.grid(True)
-        plt.legend()
         plt.tight_layout()
 
-        plot_path = os.path.join(plot_dir, f"{col}.png")
-        plt.savefig(plot_path)
-        print(f"✅ Saved plot: {plot_path}")
+        out_file = os.path.join(plot_dir, col.replace('.', '_') + ".png")
+        plt.savefig(out_file)
         plt.close()
-    except Exception as e:
-        print(f"⚠️ Failed to plot {col}: {e}")
+        print(f"  ✅ Saved: {out_file}")
 
-print("✅ All available plots saved.")
+    except Exception as e:
+        print(f"  ⚠️ Failed to plot {col}: {e}")
+
+print("✅ All done.")

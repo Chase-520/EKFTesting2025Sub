@@ -12,7 +12,7 @@ os.makedirs(plot_dir, exist_ok=True)
 # Load CSV
 df = pd.read_csv(csv_path)
 
-# Try to detect time column
+# Try to detect a time column
 time_col = None
 for col in df.columns:
     if 'time' in col.lower():
@@ -24,6 +24,9 @@ if time_col is None:
     df['index'] = df.index
     time_col = 'index'
 
+# Ensure time column is numeric
+df[time_col] = pd.to_numeric(df[time_col], errors='coerce')
+
 # Get numeric columns (excluding time)
 numeric_cols = df.select_dtypes(include='number').columns.tolist()
 numeric_cols = [col for col in numeric_cols if col != time_col]
@@ -34,21 +37,32 @@ if not numeric_cols:
 
 # Plot each numeric column
 for col in numeric_cols:
-    plt.figure(figsize=(10, 4))
-    plt.plot(df[time_col], df[col], label=col)
-    plt.xlabel(time_col)
-    plt.ylabel(col)
-    plt.title(f"{col} vs {time_col}")
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
+    try:
+        # Convert to numeric, drop NaNs
+        y = pd.to_numeric(df[col], errors='coerce')
+        x = df[time_col]
+        mask = (~x.isna()) & (~y.isna())
+        x = x[mask]
+        y = y[mask]
 
-    # Save plot
-    plot_path = os.path.join(plot_dir, f"{col}.png")
-    plt.savefig(plot_path)
-    print(f"✅ Saved plot: {plot_path}")
+        if len(x) == 0 or len(y) == 0:
+            print(f"⚠️ Skipping column '{col}': no valid data to plot.")
+            continue
 
-    # Optional: show plot
-    # plt.show()
+        plt.figure(figsize=(10, 4))
+        plt.plot(x, y, label=col)
+        plt.xlabel(time_col)
+        plt.ylabel(col)
+        plt.title(f"{col} vs {time_col}")
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
 
-print("✅ All plots saved.")
+        plot_path = os.path.join(plot_dir, f"{col}.png")
+        plt.savefig(plot_path)
+        print(f"✅ Saved plot: {plot_path}")
+        plt.close()
+    except Exception as e:
+        print(f"⚠️ Failed to plot {col}: {e}")
+
+print("✅ All available plots saved.")

@@ -84,7 +84,7 @@ class EKFNode:
         self.fog_sub = rospy.Subscriber("/auv/devices/fog", Float64, self.fog_callback)
         self.baro_sub = rospy.Subscriber("/mavlink/from", Mavlink, self.barometer_callback)
 
-        self.calibrate_depth()
+        # self.calibrate_depth()
         rospy.Timer(rospy.Duration(self.dt), self.ekf_step)
 
     def imu_callback(self, msg):

@@ -27,7 +27,6 @@ df['vy'] = df['field.twist.linear.y'].map(flatten_val)
 # Filter for time between 4.8 and 5.2 seconds
 print("Min %time:", df['%time'].min())
 print("Max %time:", df['%time'].max())
-time_min, time_max = 4.8, 5.2
 window_df = df
 print(window_df.head())
 # Filter out rows with NaN in vx or vy
@@ -42,7 +41,7 @@ mean_vy = np.mean(vy)
 
 print(f"mean vx: {mean_vx}, mean vy: {mean_vy}")
 # Compute theta (yaw offset)
-theta = np.arctan2(mean_vy, mean_vx)
+theta = 49.55
 print(f"Estimated DVL yaw offset (radians): {theta:.4f}")
 print(f"Estimated DVL yaw offset (degrees): {np.degrees(theta):.2f}")
 

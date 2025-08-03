@@ -40,14 +40,15 @@ vy = window_df['vy'].to_numpy()
 mean_vx = np.mean(vx)
 mean_vy = np.mean(vy)
 
+print(f"mean vx: {mean_vx}, mean vy: {mean_vy}")
 # Compute theta (yaw offset)
 theta = np.arctan2(mean_vy, mean_vx)
 print(f"Estimated DVL yaw offset (radians): {theta:.4f}")
 print(f"Estimated DVL yaw offset (degrees): {np.degrees(theta):.2f}")
 
 # Optional: plot before and after rotation for this window
-cos_t = np.cos(-theta)
-sin_t = np.sin(-theta)
+cos_t = np.cos(theta)
+sin_t = np.sin(theta)
 
 vx_body = cos_t * vx + sin_t * vy
 vy_body = cos_t * vy - sin_t * vx

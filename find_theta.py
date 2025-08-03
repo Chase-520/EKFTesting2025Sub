@@ -49,8 +49,8 @@ print(f"Estimated DVL yaw offset (degrees): {np.degrees(theta):.2f}")
 cos_t = np.cos(theta)
 sin_t = np.sin(theta)
 
-vx_body = cos_t * vx + sin_t * vy
-vy_body = cos_t * vy - sin_t * vx
+vx_body = cos_t * vx - sin_t * vy
+vy_body = sin_t * vx + cos_t * vy
 
 plt.figure(figsize=(12,5))
 plt.subplot(1,2,1)

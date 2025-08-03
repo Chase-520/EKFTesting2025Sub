@@ -57,7 +57,7 @@ plt.subplot(1,2,1)
 plt.scatter(vx, vy, s=10)
 plt.xlabel('v_x (DVL frame)')
 plt.ylabel('v_y (DVL frame)')
-plt.title(f'Original velocities [{time_min}s - {time_max}s]')
+plt.title(f'Original velocities')
 plt.axis('equal')
 plt.grid(True)
 
